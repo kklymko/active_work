@@ -145,11 +145,14 @@ double fluxp=0.0;
 
 				
 	
-            vector<double> weights(2);
+            vector<double> weights(3);
             weights[0]= fluxp/N;
             weights[1]=sum_flambda;
             weights[2]=sqrt(sum_theta)/N;
-            return weights;//returns the scaled observable
+    	//			printf("%lf\n ",weights[2]);
+    		//		printf("HERE");
+
+		        return weights;//returns the scaled observable
 }
 
 int main(int argc, char *argv[])
@@ -238,9 +241,11 @@ int main(int argc, char *argv[])
 		theta[i] = thetainit;
 	}
 
+
 	for(i=0;i<Nw;i++){
 		parent[i] = i;
 		Qavg[i] = 0.0;
+		Pavg[i] = 0.0;
 	}
 	
 	for(i=0;i<Ntint;i++){ //this is the time loop we are interested in
@@ -255,7 +260,9 @@ int main(int argc, char *argv[])
 
 			localq2[j] = values[1];
 			localq3[j] = values[2];
+//			printf("%d %lf %lf %lf\n",j,localq[j],localq2[j],localq3[j]);
 		}	
+
 
 		// Gather all the currents generated in tint to rank 0
 		MPI_Gather(&localq[0],n,MPI_DOUBLE,&globalq[0],n,MPI_DOUBLE,0,MPI_COMM_WORLD);
