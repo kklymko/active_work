@@ -90,6 +90,7 @@ vector<double> propagation(vector<double>& x, int N, double L, double tint, gsl_
   	vector< vector<double> > f(N, vector<double>(2));
     // vector<double> flamx(N),flamy(N);
 	double sum_flambda=0.0;
+	double sum_theta=0.0;
 double fluxp=0.0;
     
     
@@ -128,10 +129,26 @@ double fluxp=0.0;
             //fluxp+=0.0;
             sum_flambda+=Pe*Pe*lams*h/(N)+Pe*Pe*lams*lams*h/(N*N)+h*f[j][0]*Pe*cos(theta[j])*lams/(N)+h*f[j][1]*Pe*sin(theta[j])*lams/(N);
 	                       }   
-                        }	
+                        }
+
+					//calculate polarization below--make sure it should be double sum 
+
+					for(i=0;i<N;i++){
+
+						for(j=0;j<N;j++){
+
+							sum_theta+=cos(theta[i]-theta[j]);
+
+						}
+
+					}
+
+				
+	
             vector<double> weights(2);
             weights[0]= fluxp/N;
             weights[1]=sum_flambda;
+            weights[2]=sqrt(sum_theta)/N;
             return weights;//returns the scaled observable
 }
 
@@ -186,9 +203,9 @@ int main(int argc, char *argv[])
 	double weightsum = 0.0;
 	int walkersum = 0;
 	vector<double> globalq(Nw),localq(n);
-    vector<double> globalq2(Nw),localq2(n);
+    vector<double> globalq2(Nw),localq2(n), localq3(n), globalq3(Nw);
     
-	double Q,Q2,localQ,localQ2,sigma;
+	double Q,Q2,localQ,localQ2,sigma,P;
 	double phi = 0.0;
 
 	vector< vector<double> > x(n, vector<double>(N)); //memory allocation
@@ -201,11 +218,13 @@ int main(int argc, char *argv[])
 	vector<int> number(Nw);
 	vector<int> parent(Nw);
 	vector<double> Qavg(Nw);
+	vector<double> Pavg(Nw);
 	vector<int> oldparent(Nw);
 	vector<double> oldQavg(Nw);
+	vector<double> oldPavg(Nw);
     vector<double> values(2);
 
-	vector<double> mean,var,ldf;
+	vector<double> mean,var,ldf,meanP;
 	vector<int> multiplicity,m;
 	vector<int> table;
 	table.reserve(Nw);
@@ -235,19 +254,21 @@ int main(int argc, char *argv[])
             		localq[j] = values[0];
 
 			localq2[j] = values[1];
+			localq3[j] = values[2];
 		}	
 
 		// Gather all the currents generated in tint to rank 0
 		MPI_Gather(&localq[0],n,MPI_DOUBLE,&globalq[0],n,MPI_DOUBLE,0,MPI_COMM_WORLD);
 		MPI_Gather(&localq2[0],n,MPI_DOUBLE,&globalq2[0],n,MPI_DOUBLE,0,MPI_COMM_WORLD);
+		MPI_Gather(&localq3[0],n,MPI_DOUBLE,&globalq3[0],n,MPI_DOUBLE,0,MPI_COMM_WORLD);
 
 		// Reweight the walkers on rank 0 and write the lookup table 
 		if(rank==0){
 		for(j=0;j<Nw;j++){
 			Qavg[j] += globalq[j];
 			weight[j] = exp(+globalq2[j]);
-			weightsum += weight[j];
-            
+			weightsum += weight[j];      
+			Pavg[j] += globalq3[j];
 	}
 		for(j=0;j<Nw;j++){
 			number[j] = floor(Nw*weight[j]/weightsum + fRand(0,1));
@@ -317,17 +338,21 @@ int main(int argc, char *argv[])
 
 		// replace the Q's at rank 0 in the inverse order
 		if(rank==0){
+			P = 0.0;
 			Q = 0.0;
 			Q2 = 0.0;
 			for(j=0;j<Nw;j++){
+				oldPavg[j] = Pavg[j];
 				oldQavg[j] = Qavg[j];
 				oldparent[j] = parent[j];
 			}
 			for(j=0;j<Nw;j++){
 				if(table[j]!=j){
+					Pavg[j] = oldPavg[table[j]];
 					Qavg[j] = oldQavg[table[j]];
 					parent[j] = oldparent[table[j]];
 				}
+				P +=Pavg[j];
 				Q += Qavg[j];
 				Q2 += Qavg[j]*Qavg[j]; 
 			}
@@ -338,11 +363,13 @@ int main(int argc, char *argv[])
 		//evaluating average observable and large deviation function
 		
 		if(rank==0){
+		P = P/Nw;
 		Q = Q/Nw;
 		Q2 = Q2/Nw;
 		sigma = (Q2-Q*Q)/(i+1)/(tint);
 		Q = Q/(i+1)/(tint);//this is Q/tobs making it intensive
 		phi += log(weightsum/Nw);
+		meanP.push_back(P);
 		mean.push_back(Q);
 		var.push_back(sigma);
 		ldf.push_back(phi/(i+1)/(tint));//1/tobs*vol.
@@ -369,7 +396,7 @@ int main(int argc, char *argv[])
 	result = fopen(buffer,"w");
 	fprintf(result,"t	ldf	mean	var	multiplicity\n");
 	for(i=0;i<Ntint;i++){
-		fprintf(result,"%lf	%lf	%lf	%lf	%lf\n",(i+1)*tint,ldf[i],mean[i],var[i],multiplicity[i]*1.0);
+		fprintf(result,"%lf	%lf %lf	%lf	%lf	%lf \n",(i+1)*tint,ldf[i],mean[i],var[i],multiplicity[i]*1.0,meanP[i]);
 	}
 	fclose(result);
 
