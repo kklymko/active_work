@@ -199,9 +199,12 @@ int main(int argc, char *argv[])
     // double den=atof(argv[4]);
     // double zeta=atof(argv[5]); 
  	int n = Nw/nprocs; 
-    
+/*    
 	double tint = 0.0005, tobs =5.0;//tried 700 try twice as long with a million walkers
 	int Ntint =10000;
+*/
+	double tint = 0.0005, tobs =1.0;//tried 700 try twice as long with a million walkers
+	int Ntint =2000;
 //	int Ntint = tobs/tint;
 	double weightsum = 0.0;
 	int walkersum = 0;
@@ -276,6 +279,7 @@ int main(int argc, char *argv[])
 			weight[j] = exp(+globalq2[j]);
 			weightsum += weight[j];      
 			Pavg[j] += globalq3[j];
+//			printf("%lf\n",Pavg[j]);
 	}
 		for(j=0;j<Nw;j++){
 			number[j] = floor(Nw*weight[j]/weightsum + fRand(0,1));
@@ -374,6 +378,7 @@ int main(int argc, char *argv[])
 		Q = Q/Nw;
 		Q2 = Q2/Nw;
 		sigma = (Q2-Q*Q)/(i+1)/(tint);
+		P = P/(i+1);
 		Q = Q/(i+1)/(tint);//this is Q/tobs making it intensive
 		phi += log(weightsum/Nw);
 		meanP.push_back(P);
@@ -403,7 +408,7 @@ int main(int argc, char *argv[])
 	result = fopen(buffer,"w");
 	fprintf(result,"t	ldf	mean	var	multiplicity\n");
 	for(i=0;i<Ntint;i++){
-		fprintf(result,"%lf	%lf %lf	%lf	%lf	%lf \n",(i+1)*tint,ldf[i],mean[i],var[i],multiplicity[i]*1.0,meanP[i]);
+		fprintf(result,"%lf	%lf %lf	%lf	%lf	%lf \n",(i+1)*tint,ldf[i],mean[i],var[i],multiplicity[i]*1.0, meanP[i]);
 	}
 	fclose(result);
 
