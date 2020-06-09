@@ -1,0 +1,2 @@
+paste videoX0.xyz videoY0.xyz > video.xyz
+awk '{if ($1=="N") print $1,$2,$4,0; else print $1}' video.xyz > video0.xyz
