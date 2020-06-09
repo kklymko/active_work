@@ -199,12 +199,13 @@ int main(int argc, char *argv[])
     // double den=atof(argv[4]);
     // double zeta=atof(argv[5]); 
  	int n = Nw/nprocs; 
-/*    
+   
 	double tint = 0.0005, tobs =5.0;//tried 700 try twice as long with a million walkers
 	int Ntint =10000;
+/*
+	double tint = 0.0005, tobs =0.5;//tried 700 try twice as long with a million walkers
+	int Ntint =1000;
 */
-	double tint = 0.0005, tobs =1.0;//tried 700 try twice as long with a million walkers
-	int Ntint =2000;
 //	int Ntint = tobs/tint;
 	double weightsum = 0.0;
 	int walkersum = 0;
