@@ -1,5 +1,0 @@
-to make the video, you need to:
-(1) run the cloning code
-(2) count the number of lines in traj_raw_test
-(3) put that and the other paramters into the read_filex.cpp and read_filey.cpp codes, then compile and run them
-(4) run ./make_video using the clone number you want
